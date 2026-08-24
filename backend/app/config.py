@@ -1,0 +1,15 @@
+import os
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Settings:
+    database_url: str
+
+
+settings = Settings(
+    database_url=os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://retail_app:change-me-locally@localhost:5432/retail_price_automation",
+    ),
+)

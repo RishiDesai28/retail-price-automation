@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-retail_app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-locally}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://retail_app:change-me-locally@db:5432/retail_price_automation}
       VENDOR_API_URL: http://vendor-api:8001
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -38,7 +38,7 @@ services:
     build:
       context: ./vendor-api
     ports:
-      - "8001:8001"
+      - "${VENDOR_API_PORT:-8001}:8001"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
       interval: 5s
@@ -51,7 +51,7 @@ services:
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     ports:
-      - "5173:5173"
+      - "${FRONTEND_PORT:-5173}:5173"
     depends_on:
       api:
         condition: service_healthy
