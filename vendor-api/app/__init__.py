@@ -1,0 +1,1 @@
+"""Mock vendor API application package."""

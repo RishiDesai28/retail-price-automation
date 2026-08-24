@@ -1,0 +1,58 @@
+:root {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #1d2b27;
+  background: #f3efe5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+.page-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at top right, #d7e4d4 0, transparent 42%), #f3efe5;
+}
+
+.welcome-panel {
+  width: min(720px, 100%);
+  padding: clamp(32px, 8vw, 88px);
+  border-left: 8px solid #d66b3d;
+  background: #fffdf8;
+  box-shadow: 16px 16px 0 #c6d5c1;
+}
+
+.eyebrow {
+  margin: 0 0 20px;
+  color: #b24f2b;
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 570px;
+  margin: 0;
+  font-size: clamp(2.5rem, 7vw, 5.2rem);
+  line-height: 0.98;
+}
+
+.status-message {
+  max-width: 440px;
+  margin: 32px 0 0;
+  color: #5c6a63;
+  font-family: Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+}
