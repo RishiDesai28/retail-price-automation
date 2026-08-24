@@ -2,12 +2,20 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.database import Base
-from app.main import dashboard_summary, list_price_changes, list_products
+from app.main import (
+    approve_price_change_endpoint,
+    dashboard_summary,
+    list_price_changes,
+    list_products,
+    reject_price_change_endpoint,
+)
 from app.models import PriceChangeLog, Product, SyncRun
+from app.schemas import RejectionRequest
 from app.sync_service import run_vendor_price_sync
 
 
@@ -162,3 +170,84 @@ def test_audit_log_filtering(session: Session) -> None:
     assert len(result.items) == 1
     assert result.items[0].status == "updated"
     assert result.pagination.total == 1
+
+
+def add_review_log(session: Session, product: Product, status: str = "review_required") -> PriceChangeLog:
+    sync_run = SyncRun(status="completed", vendor_records_received=1, products_matched=1)
+    session.add(sync_run)
+    session.flush()
+    log = PriceChangeLog(
+        sync_run_id=sync_run.id,
+        product_id=product.id,
+        vendor_product_id=product.vendor_product_id,
+        product_name=product.name,
+        old_vendor_cost=product.current_vendor_cost,
+        new_vendor_cost=Decimal("12.00"),
+        old_pos_price=product.current_pos_price,
+        suggested_pos_price=Decimal("17.14"),
+        target_margin_pct=product.target_margin_pct,
+        status=status,
+        reason="Cost changed beyond threshold.",
+    )
+    session.add(log)
+    session.commit()
+    session.refresh(log)
+    return log
+
+
+def test_approve_review_required_updates_product_and_log(session: Session) -> None:
+    product = add_product(session, "VND-001")
+    log = add_review_log(session, product)
+
+    result = approve_price_change_endpoint(log.id, session)
+
+    session.refresh(product)
+    assert result.status == "updated"
+    assert result.new_pos_price == Decimal("17.14")
+    assert result.reviewed_at is not None
+    assert "manually approved" in result.reason.lower()
+    assert product.current_vendor_cost == Decimal("12.00")
+    assert product.current_pos_price == Decimal("17.14")
+
+
+def test_reject_review_required_preserves_product_price(session: Session) -> None:
+    product = add_product(session, "VND-001")
+    original_cost = product.current_vendor_cost
+    original_price = product.current_pos_price
+    log = add_review_log(session, product)
+
+    result = reject_price_change_endpoint(log.id, RejectionRequest(rejection_reason="Margin is too thin."), session)
+
+    session.refresh(product)
+    assert result.status == "rejected"
+    assert result.reviewed_at is not None
+    assert "Margin is too thin." in result.reason
+    assert product.current_vendor_cost == original_cost
+    assert product.current_pos_price == original_price
+    assert result.new_vendor_cost == Decimal("12.00")
+    assert result.suggested_pos_price == Decimal("17.14")
+
+
+def test_approval_of_non_review_record_is_rejected(session: Session) -> None:
+    product = add_product(session, "VND-001")
+    log = add_review_log(session, product, status="updated")
+
+    with pytest.raises(HTTPException) as error:
+        approve_price_change_endpoint(log.id, session)
+
+    assert error.value.status_code == 409
+
+
+def test_rejection_of_non_review_record_is_rejected(session: Session) -> None:
+    product = add_product(session, "VND-001")
+    log = add_review_log(session, product, status="no_change")
+
+    with pytest.raises(HTTPException) as error:
+        reject_price_change_endpoint(log.id, RejectionRequest(rejection_reason="Not needed."), session)
+
+    assert error.value.status_code == 409
+
+
+def test_rejection_requires_non_empty_reason() -> None:
+    with pytest.raises(ValueError):
+        RejectionRequest(rejection_reason="   ")

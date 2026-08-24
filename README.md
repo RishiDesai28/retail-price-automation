@@ -62,4 +62,15 @@ curl -X PATCH http://localhost:8001/vendor/products/VND-001/price \
 curl http://localhost:8001/vendor/products/VND-001
 ```
 
-Phase 2B does not include sync processing or the full frontend dashboard.
+Phase 2B data setup does not include the frontend dashboard; synchronization is provided by the Phase 3 backend API below.
+
+## Phase 3 API
+
+The backend now provides vendor-price synchronization at `POST /api/sync/vendor-prices`, product and price-change queries, dashboard metrics, and manual review decisions at:
+
+```text
+POST /api/price-changes/{log_id}/approve
+POST /api/price-changes/{log_id}/reject
+```
+
+Approvals update the product using the recorded suggested price. Rejections require a non-empty JSON body such as `{"rejection_reason":"Margin is too thin."}`. Review decisions preserve the original audit values and append the decision to the audit reason. Interactive OpenAPI documentation is available at `http://localhost:8000/docs`.

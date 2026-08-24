@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ProductResponse(BaseModel):
@@ -46,6 +46,17 @@ class PriceChangeResponse(BaseModel):
     reason: str
     reviewed_at: datetime | None
     processed_at: datetime
+
+
+class RejectionRequest(BaseModel):
+    rejection_reason: str = Field(min_length=1)
+
+    @field_validator("rejection_reason")
+    @classmethod
+    def require_non_whitespace(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("rejection reason must not be empty")
+        return value
 
 
 class SyncRunResponse(BaseModel):

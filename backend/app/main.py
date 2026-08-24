@@ -16,10 +16,12 @@ from app.schemas import (
     ProductListResponse,
     ProductResponse,
     ProductUpdateRequest,
+    RejectionRequest,
     SyncRunListResponse,
     SyncRunResponse,
 )
 from app.sync_service import run_vendor_price_sync
+from app.review_service import approve_price_change, reject_price_change
 
 app = FastAPI(title="Retail Price Automation API")
 
@@ -179,6 +181,28 @@ def get_price_change(log_id: int, session: Session = Depends(get_db)) -> PriceCh
     if log is None:
         raise HTTPException(status_code=404, detail="Price change log not found")
     return log
+
+
+@app.post("/api/price-changes/{log_id}/approve", response_model=PriceChangeResponse, tags=["price changes"])
+def approve_price_change_endpoint(log_id: int, session: Session = Depends(get_db)) -> PriceChangeLog:
+    try:
+        return approve_price_change(session, log_id)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.post("/api/price-changes/{log_id}/reject", response_model=PriceChangeResponse, tags=["price changes"])
+def reject_price_change_endpoint(
+    log_id: int, request: RejectionRequest, session: Session = Depends(get_db)
+) -> PriceChangeLog:
+    try:
+        return reject_price_change(session, log_id, request.rejection_reason)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.get("/api/sync-runs", response_model=SyncRunListResponse, tags=["sync"])
