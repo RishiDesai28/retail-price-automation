@@ -40,4 +40,26 @@ alembic current
 
 Stop the stack with `docker compose down`. Add `-v` only when you also want to remove the database volume.
 
-The application does not contain database models, seed data, pricing logic, or dashboard data yet. Those will be added in later phases.
+## Phase 2B demo data
+
+The API container runs an idempotent seed after migrations. It creates 60 generic products across eight categories, with vendor costs, POS prices, target margins, and mixed automatic-update settings. Existing rows are left unchanged, so rerunning the seed is safe:
+
+```bash
+docker compose run --rm api python -m app.seed
+```
+
+The mock vendor API keeps 62 products in memory while its container runs. The 60 `VND-001` through `VND-060` records match the retail seed, and `VND-061` and `VND-062` are vendor-only records. Reset vendor prices to their original demo values with:
+
+```bash
+curl -X POST http://localhost:8001/vendor/reset
+```
+
+Vendor prices can be changed dynamically and read back immediately:
+
+```bash
+curl -X PATCH http://localhost:8001/vendor/products/VND-001/price \
+	-H 'Content-Type: application/json' -d '{"price": 13.50}'
+curl http://localhost:8001/vendor/products/VND-001
+```
+
+Phase 2B does not include sync processing or the full frontend dashboard.
