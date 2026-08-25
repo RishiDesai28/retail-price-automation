@@ -18,7 +18,7 @@ class Product(Base):
     sku: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str | None] = mapped_column(String(100))
-    vendor_product_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    vendor_product_id: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     current_vendor_cost: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     current_pos_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     target_margin_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)

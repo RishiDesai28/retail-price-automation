@@ -181,6 +181,7 @@ export default function DashboardPage() {
   }, [summary]);
 
   const statusOptions = ['', 'updated', 'review_required', 'rejected', 'no_change', 'failed', 'unmatched'];
+  const hasTableFilters = Boolean(searchQuery || selectedCategory || statusFilter);
 
   async function handleSync() {
     setSyncError(null);
@@ -272,6 +273,9 @@ export default function DashboardPage() {
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.12em] text-slate-500">Price changes</p>
             <h3 className="mt-2 text-xl font-semibold text-slate-900">Recent updates</h3>
+            <p className="mt-1 text-sm text-slate-600" aria-live="polite">
+              {pageInfo.total} {pageInfo.total === 1 ? 'result' : 'results'}
+            </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <input
@@ -333,6 +337,20 @@ export default function DashboardPage() {
           >
             {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
           </button>
+          {hasTableFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('');
+                setStatusFilter('');
+                setTablePage(1);
+              }}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            >
+              Clear filters
+            </button>
+          ) : null}
         </div>
 
         {tableLoading ? (
@@ -345,18 +363,19 @@ export default function DashboardPage() {
           <>
             <div className="mt-5 overflow-x-auto">
               <table className="min-w-[1200px] w-full border-separate border-spacing-0 text-left text-sm text-slate-700">
+                <caption className="sr-only">Recent price changes and review actions</caption>
                 <thead>
                   <tr className="bg-slate-50 text-slate-600">
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Product</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">SKU / vendor product ID</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Old Cost</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">New Cost</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Change %</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Old POS Price</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Suggested POS Price</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Status</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Processed Date</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium text-right">Details</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Product</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">SKU / vendor product ID</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Old Cost</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">New Cost</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Change %</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Old POS Price</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Suggested POS Price</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Status</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Processed Date</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Details</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -364,11 +383,11 @@ export default function DashboardPage() {
                     <tr key={change.id} className="align-top">
                       <td className="border-b border-slate-200 px-3 py-3 font-medium text-slate-900">{change.product_name}</td>
                       <td className="border-b border-slate-200 px-3 py-3">{change.vendor_product_id}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatCurrency(change.old_vendor_cost)}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatCurrency(change.new_vendor_cost)}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatPercent(change.change_pct)}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatCurrency(change.old_pos_price)}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatCurrency(change.suggested_pos_price)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(change.old_vendor_cost)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(change.new_vendor_cost)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatPercent(change.change_pct)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(change.old_pos_price)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(change.suggested_pos_price)}</td>
                       <td className="border-b border-slate-200 px-3 py-3"><StatusBadge status={change.status} /></td>
                       <td className="border-b border-slate-200 px-3 py-3">{formatDate(change.processed_at)}</td>
                       <td className="border-b border-slate-200 px-3 py-3 text-right">

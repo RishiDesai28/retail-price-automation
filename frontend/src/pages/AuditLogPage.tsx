@@ -125,6 +125,8 @@ export default function AuditLogPage() {
     void fetchRecords();
   }, [fetchRecords]);
 
+  const hasFilters = Boolean(search || categoryFilter || statusFilter || fromDate || toDate);
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -214,10 +216,27 @@ export default function AuditLogPage() {
           >
             {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
           </button>
+          {hasFilters ? (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setCategoryFilter('');
+                setStatusFilter('');
+                setFromDate('');
+                setToDate('');
+                setPage(1);
+              }}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            >
+              Clear filters
+            </button>
+          ) : null}
         </div>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p className="mb-4 text-sm text-slate-600" aria-live="polite">{pageInfo.total} {pageInfo.total === 1 ? 'result' : 'results'}</p>
         {loading ? (
           <LoadingState message="Loading audit history…" />
         ) : error ? (
@@ -228,18 +247,19 @@ export default function AuditLogPage() {
           <>
             <div className="overflow-x-auto">
               <table className="min-w-[1200px] w-full border-separate border-spacing-0 text-left text-sm text-slate-700">
+                <caption className="sr-only">Price-change audit history</caption>
                 <thead>
                   <tr className="bg-slate-50 text-slate-600">
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Product</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Vendor product ID</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Old cost</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">New cost</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Change %</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Suggested POS</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Status</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Reason</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium">Processed date</th>
-                    <th className="border-b border-slate-200 px-3 py-3 font-medium text-right">Details</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Product</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Vendor product ID</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Old cost</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">New cost</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Change %</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Suggested POS</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Status</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Reason</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Processed date</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Details</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -247,10 +267,10 @@ export default function AuditLogPage() {
                     <tr key={record.id} className="align-top">
                       <td className="border-b border-slate-200 px-3 py-3 font-medium text-slate-900">{record.product_name}</td>
                       <td className="border-b border-slate-200 px-3 py-3">{record.vendor_product_id}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatCurrency(record.old_vendor_cost)}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatCurrency(record.new_vendor_cost)}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatPercent(record.change_pct)}</td>
-                      <td className="border-b border-slate-200 px-3 py-3">{formatCurrency(record.suggested_pos_price)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(record.old_vendor_cost)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(record.new_vendor_cost)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatPercent(record.change_pct)}</td>
+                      <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(record.suggested_pos_price)}</td>
                       <td className="border-b border-slate-200 px-3 py-3"><StatusBadge status={record.status} /></td>
                       <td className="border-b border-slate-200 px-3 py-3 text-slate-600">{record.reason}</td>
                       <td className="border-b border-slate-200 px-3 py-3">{formatDate(record.processed_at)}</td>

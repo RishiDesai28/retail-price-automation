@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
+import re
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import case, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -27,7 +28,7 @@ app = FastAPI(title="Retail Price Automation API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0):5173",
+    allow_origins=list(settings.cors_allowed_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,6 +52,13 @@ def health() -> dict[str, str]:
 
 def _pagination(page: int, page_size: int, total: int) -> Pagination:
     return Pagination(page=page, page_size=page_size, total=total, total_pages=(total + page_size - 1) // page_size)
+
+
+def _normalize_search(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = re.sub(r"\s+", " ", value).strip()
+    return normalized or None
 
 
 @app.post("/api/sync/vendor-prices", response_model=SyncRunResponse, tags=["sync"], status_code=200)
@@ -98,9 +106,27 @@ def list_products(
     session: Session = Depends(get_db),
 ) -> ProductListResponse:
     query = select(Product)
-    if search:
-        term = f"%{search}%"
-        query = query.where(or_(Product.name.ilike(term), Product.sku.ilike(term), Product.vendor_product_id.ilike(term)))
+    normalized_search = _normalize_search(search)
+    if normalized_search:
+        escaped_search = normalized_search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        term = f"%{escaped_search}%"
+        lower_name = func.lower(Product.name)
+        lower_search = normalized_search.lower()
+        query = query.where(or_(
+            Product.name.ilike(term, escape="\\"),
+            Product.sku.ilike(term, escape="\\"),
+            Product.vendor_product_id.ilike(term, escape="\\"),
+            Product.category.ilike(term, escape="\\"),
+        ))
+        relevance = case(
+            (lower_name == lower_search, 0),
+            (lower_name.like(f"{lower_search}%", escape="\\"), 1),
+            (lower_name.like(f"%{lower_search}%", escape="\\"), 2),
+            else_=3,
+        )
+        query = query.order_by(relevance, func.lower(Product.name), Product.sku)
+    else:
+        query = query.order_by(func.lower(Product.name), Product.sku)
     if category:
         query = query.where(Product.category == category)
     if active is not None:
@@ -108,7 +134,7 @@ def list_products(
     if auto_update_enabled is not None:
         query = query.where(Product.auto_update_enabled.is_(auto_update_enabled))
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
-    products = session.scalars(query.order_by(Product.id).offset((page - 1) * page_size).limit(page_size)).all()
+    products = session.scalars(query.offset((page - 1) * page_size).limit(page_size)).all()
     return ProductListResponse(items=products, pagination=_pagination(page, page_size, total))
 
 

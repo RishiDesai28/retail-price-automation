@@ -145,6 +145,56 @@ def test_product_filtering(session: Session) -> None:
     assert result.pagination.total == 1
 
 
+def test_product_search_is_case_insensitive_and_normalizes_whitespace(session: Session) -> None:
+    add_product(session, "VND-001", "Whole Milk - 1 Gallon", category="Dairy", sku="SKU-001")
+    add_product(session, "VND-002", "Whole Milk - Half Gallon", category="Dairy", sku="SKU-002")
+
+    result = list_products(search="  WHOLE   MILK  ", page=1, page_size=10, session=session)
+
+    assert [product.name for product in result.items] == [
+        "Whole Milk - 1 Gallon",
+        "Whole Milk - Half Gallon",
+    ]
+    assert result.pagination.total == 2
+
+
+def test_product_search_matches_sku_vendor_id_and_category(session: Session) -> None:
+    add_product(session, "VND-001", "Cocoa", category="Beverages", sku="SKU-COCOA")
+    add_product(session, "VND-002", "Rice", category="Grocery", sku="SKU-RICE")
+
+    assert [product.name for product in list_products(search="sku-cocoa", page=1, page_size=10, session=session).items] == ["Cocoa"]
+    assert [product.name for product in list_products(search="vnd-002", page=1, page_size=10, session=session).items] == ["Rice"]
+    assert [product.name for product in list_products(search="grocery", page=1, page_size=10, session=session).items] == ["Rice"]
+
+
+def test_product_search_ranks_exact_prefix_and_partial_name_matches(session: Session) -> None:
+    add_product(session, "VND-001", "Milk", sku="SKU-001")
+    add_product(session, "VND-002", "Whole Milk", sku="SKU-002")
+    add_product(session, "VND-003", "Chocolate Milkshake", sku="SKU-003")
+
+    result = list_products(search="milk", page=1, page_size=10, session=session)
+
+    assert [product.name for product in result.items] == ["Milk", "Whole Milk", "Chocolate Milkshake"]
+
+
+def test_product_search_paginates_after_filtering_and_preserves_variants(session: Session) -> None:
+    for index in range(1, 4):
+        add_product(
+            session,
+            f"VND-{index:03d}",
+            f"Whole Milk - Variant {index}",
+            category="Dairy",
+            sku=f"SKU-{index:03d}",
+        )
+
+    result = list_products(search="whole milk", category="Dairy", page=2, page_size=2, session=session)
+
+    assert [product.name for product in result.items] == ["Whole Milk - Variant 3"]
+    assert result.pagination.total == 3
+    assert result.pagination.page == 2
+    assert result.pagination.total_pages == 2
+
+
 def test_audit_log_filtering(session: Session) -> None:
     product = add_product(session, "VND-001")
     sync_run = SyncRun(status="completed", vendor_records_received=1, products_matched=1)
