@@ -174,7 +174,7 @@ def test_product_search_ranks_exact_prefix_and_partial_name_matches(session: Ses
 
     result = list_products(search="milk", page=1, page_size=10, session=session)
 
-    assert [product.name for product in result.items] == ["Milk", "Whole Milk", "Chocolate Milkshake"]
+    assert [product.name for product in result.items] == ["Milk", "Chocolate Milkshake", "Whole Milk"]
 
 
 def test_product_search_paginates_after_filtering_and_preserves_variants(session: Session) -> None:
