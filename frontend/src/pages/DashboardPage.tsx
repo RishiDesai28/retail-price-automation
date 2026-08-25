@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { PriceChangeDetailDrawer } from '../components/PriceChangeDetailDrawer';
 import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
@@ -100,7 +101,7 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState<(typeof sortOptions)[number]['value']>('processed_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [pageInfo, setPageInfo] = useState({ page: 1, total_pages: 1, total: 0, page_size: 25 });
-  const [detailsMessage, setDetailsMessage] = useState<string | null>(null);
+  const [selectedLogId, setSelectedLogId] = useState<number | null>(null);
 
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -373,7 +374,7 @@ export default function DashboardPage() {
                       <td className="border-b border-slate-200 px-3 py-3 text-right">
                         <button
                           type="button"
-                          onClick={() => setDetailsMessage(`Full price-change details for ${change.product_name} will be added in the next phase.`)}
+                          onClick={() => setSelectedLogId(change.id)}
                           className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
                         >
                           Details
@@ -385,12 +386,6 @@ export default function DashboardPage() {
               </table>
             </div>
 
-            {detailsMessage ? (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                {detailsMessage}
-              </div>
-            ) : null}
-
             <Pagination
               page={pageInfo.page}
               totalPages={pageInfo.total_pages}
@@ -399,6 +394,16 @@ export default function DashboardPage() {
           </>
         )}
       </section>
+
+      <PriceChangeDetailDrawer
+        logId={selectedLogId}
+        isOpen={selectedLogId !== null}
+        onClose={() => setSelectedLogId(null)}
+        onMutated={async () => {
+          await fetchSummary();
+          await fetchPriceChanges();
+        }}
+      />
     </div>
   );
 }
