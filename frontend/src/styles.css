@@ -11,13 +11,15 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   --ink: #28231f;
-  --muted-ink: #756b61;
+  --muted-ink: #6f655b;
   --paper: #fffaf2;
-  --paper-deep: #f7efe4;
-  --line: #ded2c4;
+  --paper-deep: #f4eadc;
+  --line: #d9cbbb;
   --terracotta: #b9573f;
   --terracotta-dark: #8f3f30;
-  --olive: #68724d;
+  --teal: #216e68;
+  --teal-dark: #185650;
+  --gold: #b9822f;
 }
 
 * {
@@ -117,6 +119,16 @@ aside h1 {
   letter-spacing: 0;
 }
 
+.brand-mark {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--teal);
+  color: var(--paper);
+}
+
 nav a {
   border-left: 3px solid transparent;
   border-radius: 3px !important;
@@ -124,8 +136,8 @@ nav a {
 }
 
 nav a[aria-current='page'] {
-  border-left-color: var(--terracotta);
-  background: #eadfd1 !important;
+  border-left-color: var(--teal);
+  background: #e1eee9 !important;
   color: var(--ink) !important;
 }
 
@@ -162,6 +174,14 @@ button[class*='bg-slate-900'] {
 button.bg-slate-900:hover,
 button[class*='bg-slate-900']:hover {
   background-color: var(--terracotta-dark) !important;
+}
+
+button[class*='bg-emerald-'] {
+  background-color: var(--teal) !important;
+}
+
+button[class*='bg-emerald-']:hover {
+  background-color: var(--teal-dark) !important;
 }
 
 button:focus-visible,

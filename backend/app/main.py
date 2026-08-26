@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, time, timedelta, timezone
 import re
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -11,6 +11,7 @@ from app.database import engine, get_db
 from app.models import PriceChangeLog, Product, SyncRun
 from app.schemas import (
     DashboardSummary,
+    CategoryListResponse,
     ManualPricingRequest,
     ManualPricingResponse,
     Pagination,
@@ -142,6 +143,14 @@ def list_products(
     return ProductListResponse(items=products, pagination=_pagination(page, page_size, total))
 
 
+@app.get("/api/products/categories", response_model=CategoryListResponse, tags=["products"])
+def list_product_categories(session: Session = Depends(get_db)) -> CategoryListResponse:
+    categories = session.scalars(
+        select(Product.category).where(Product.category.is_not(None)).distinct().order_by(Product.category)
+    ).all()
+    return CategoryListResponse(items=[category for category in categories if category])
+
+
 @app.get("/api/products/{product_id}", response_model=ProductResponse, tags=["products"])
 def get_product(product_id: int, session: Session = Depends(get_db)) -> Product:
     product = session.get(Product, product_id)
@@ -223,7 +232,10 @@ def list_price_changes(
     if from_date:
         query = query.where(PriceChangeLog.processed_at >= from_date)
     if to_date:
-        query = query.where(PriceChangeLog.processed_at <= to_date)
+        if to_date.time() == time.min:
+            query = query.where(PriceChangeLog.processed_at < to_date + timedelta(days=1))
+        else:
+            query = query.where(PriceChangeLog.processed_at <= to_date)
     total = session.scalar(select(func.count()).select_from(query.subquery())) or 0
     sort_column = sort_columns[sort_by]
     sort_column = sort_column.asc() if sort_order == "asc" else sort_column.desc()

@@ -62,6 +62,8 @@ export function ProductEditorDrawer({ productId, isOpen, onClose, onSaved }: Pro
       setProduct(null);
       setError(null);
       setReason('');
+      setPreview(null);
+      setMode('margin_based');
       return;
     }
 
@@ -73,6 +75,8 @@ export function ProductEditorDrawer({ productId, isOpen, onClose, onSaved }: Pro
         const response = await apiFetch<ProductRecord>(`/api/products/${productId}`);
         if (cancelled) return;
         setProduct(response);
+        setMode('margin_based');
+        setPreview(null);
         setVendorCost(response.current_vendor_cost === null ? '' : String(response.current_vendor_cost));
         setPosPrice(response.current_pos_price === null ? '' : String(response.current_pos_price));
         setTargetMargin(String(response.target_margin_pct));

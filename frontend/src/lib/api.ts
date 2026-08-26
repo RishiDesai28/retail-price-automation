@@ -5,7 +5,6 @@ export type ApiError = Error & {
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL && String(import.meta.env.VITE_API_BASE_URL).trim()) ||
-  (import.meta.env.VITE_API_URL && String(import.meta.env.VITE_API_URL).trim()) ||
   '';
 
 function buildUrl(path: string): string {

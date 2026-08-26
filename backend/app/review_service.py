@@ -17,6 +17,8 @@ def approve_price_change(session: Session, log_id: int) -> PriceChangeLog:
     product = session.get(Product, log.product_id)
     if product is None:
         raise LookupError("Product for price change log not found")
+    if product.current_vendor_cost != log.old_vendor_cost or product.current_pos_price != log.old_pos_price:
+        raise ValueError("This price change is stale because the product was changed after review began")
     product.current_vendor_cost = log.new_vendor_cost
     product.current_pos_price = log.suggested_pos_price
     log.status = "updated"

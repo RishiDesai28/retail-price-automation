@@ -26,6 +26,7 @@ type ProductListResponse = {
   items: Product[];
   pagination: { page: number; page_size: number; total: number; total_pages: number };
 };
+type CategoryListResponse = { items: string[] };
 
 function buildQueryString(params: Record<string, string | number | undefined | null>) {
   const query = new URLSearchParams();
@@ -57,8 +58,8 @@ export default function ProductsPage() {
 
   const fetchCategoryOptions = useCallback(async () => {
     try {
-      const response = await apiFetch<ProductListResponse>('/api/products?page=1&page_size=100');
-      setCategoryOptions(Array.from(new Set(response.items.map((item) => item.category).filter((value): value is string => Boolean(value)))).sort());
+      const response = await apiFetch<CategoryListResponse>('/api/products/categories');
+      setCategoryOptions(response.items);
     } catch {
       setCategoryOptions([]);
     }
@@ -175,7 +176,7 @@ export default function ProductsPage() {
           <div className="space-y-3"><EmptyState title="No products found" description={search ? `No products match “${search}”.` : 'Try a different filter or search term.'} />{hasFilters ? <button type="button" onClick={clearFilters} className="mx-auto block rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Clear search and filters</button> : null}</div>
         ) : (
           <>
-            <div className="hidden w-full overflow-hidden md:block">
+            <div className="hidden w-full overflow-x-auto md:block">
               <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm text-slate-700">
                 <caption className="sr-only">Product catalog with pricing and automation settings</caption>
                 <thead className="sticky top-0 z-10"><tr className="bg-slate-50 text-slate-600">
@@ -192,7 +193,7 @@ export default function ProductsPage() {
         )}
       </section>
 
-      <ProductEditorDrawer productId={selectedProductId} isOpen={selectedProductId !== null} onClose={() => setSelectedProductId(null)} onSaved={async () => { setSuccessMessage('Product updated successfully.'); await Promise.all([fetchProducts(), fetchCategoryOptions(), apiFetch('/api/dashboard/summary'), apiFetch('/api/price-changes?page=1&page_size=1')]); }} />
+      <ProductEditorDrawer productId={selectedProductId} isOpen={selectedProductId !== null} onClose={() => setSelectedProductId(null)} onSaved={async () => { setSuccessMessage('Product updated successfully.'); await Promise.all([fetchProducts(), fetchCategoryOptions()]); }} />
     </div>
   );
 }

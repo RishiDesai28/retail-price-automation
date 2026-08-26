@@ -57,9 +57,7 @@ type PriceChangeListResponse = {
   };
 };
 
-type CategoryListResponse = {
-  items: Array<{ category: string | null }>;
-};
+type CategoryListResponse = { items: string[] };
 
 const sortOptions = [
   { value: 'processed_at', label: 'Processed date' },
@@ -120,16 +118,8 @@ export default function DashboardPage() {
 
   const fetchCategoryOptions = useCallback(async () => {
     try {
-      const response = await apiFetch<CategoryListResponse>('/api/products?page=1&page_size=100');
-      const categories = Array.from(
-        new Set(
-          response.items
-            .map((item) => item.category)
-            .filter((category): category is string => Boolean(category && category.trim())),
-        ),
-      ).sort((a, b) => a.localeCompare(b));
-
-      setCategoryOptions(categories);
+      const response = await apiFetch<CategoryListResponse>('/api/products/categories');
+      setCategoryOptions(response.items);
     } catch {
       setCategoryOptions([]);
     }
@@ -361,7 +351,7 @@ export default function DashboardPage() {
           <div className="mt-5"><EmptyState title="No price changes found" description="Adjust filters or run a vendor sync to populate the dashboard." /></div>
         ) : (
           <>
-            <div className="mt-5 w-full overflow-hidden">
+            <div className="mt-5 w-full overflow-x-auto">
               <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm text-slate-700">
                 <caption className="sr-only">Recent price changes and review actions</caption>
                 <thead>

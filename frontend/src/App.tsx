@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Boxes, ClipboardList, LayoutDashboard } from 'lucide-react';
 import { BrowserRouter, NavLink, Navigate, Route, Routes } from 'react-router-dom';
 
 import DashboardPage from './pages/DashboardPage';
@@ -21,12 +22,20 @@ function AppLayout({ children }: AppLayoutProps) {
       <div className="flex min-h-screen w-full flex-col lg:flex-row">
         <aside className="shrink-0 border-b border-slate-200 bg-white/90 backdrop-blur lg:min-h-screen lg:w-64 lg:border-b-0 lg:border-r">
           <div className="border-b border-slate-200 px-4 py-6 lg:px-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Operations</p>
-            <h1 className="mt-3 text-xl font-semibold text-slate-900">Retail Price Automation Dashboard</h1>
+            <div className="flex items-center gap-3">
+              <div className="brand-mark" aria-hidden="true"><Boxes size={20} strokeWidth={2.2} /></div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Operations</p>
+                <h1 className="mt-1 text-xl font-semibold text-slate-900">Price desk</h1>
+              </div>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-slate-500">Keep vendor costs, shelf prices, and reviews in one place.</p>
           </div>
 
           <nav className="flex gap-2 overflow-x-auto px-3 py-4 lg:flex-col lg:px-2 lg:py-6">
-            {navItems.map(({ to, label }) => (
+            {navItems.map(({ to, label }, index) => {
+              const Icon = [LayoutDashboard, Boxes, ClipboardList][index];
+              return (
               <NavLink
                 key={to}
                 to={to}
@@ -38,9 +47,11 @@ function AppLayout({ children }: AppLayoutProps) {
                   }`
                 }
               >
+                <Icon className="mr-2.5" size={17} aria-hidden="true" />
                 {label}
               </NavLink>
-            ))}
+              );
+            })}
           </nav>
         </aside>
 

@@ -35,7 +35,7 @@ type PriceChangeResponse = {
 };
 
 type ProductListResponse = {
-  items: Array<{ category: string | null }>;
+  items: string[];
 };
 
 function buildQueryString(params: Record<string, string | number | undefined | null>) {
@@ -77,15 +77,8 @@ export default function AuditLogPage() {
 
   const fetchCategoryOptions = useCallback(async () => {
     try {
-      const response = await apiFetch<ProductListResponse>('/api/products?page=1&page_size=100');
-      const categories = Array.from(
-        new Set(
-          response.items
-            .map((item) => item.category)
-            .filter((category): category is string => Boolean(category && category.trim())),
-        ),
-      ).sort((a, b) => a.localeCompare(b));
-      setCategoryOptions(categories);
+      const response = await apiFetch<ProductListResponse>('/api/products/categories');
+      setCategoryOptions(response.items);
     } catch {
       setCategoryOptions([]);
     }
@@ -256,7 +249,7 @@ export default function AuditLogPage() {
           <EmptyState title="No audit records found" description="Adjust filters or run vendor sync to populate this view." />
         ) : (
           <>
-            <div className="w-full overflow-hidden">
+            <div className="w-full overflow-x-auto">
               <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm text-slate-700">
                 <caption className="sr-only">Price-change audit history</caption>
                 <thead>

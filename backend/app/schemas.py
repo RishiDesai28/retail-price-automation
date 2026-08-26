@@ -30,9 +30,9 @@ class ProductUpdateRequest(BaseModel):
 
 
 class ManualPricingRequest(BaseModel):
-    vendor_cost: Decimal | None = Field(default=None, gt=0)
-    target_margin_pct: Decimal | None = Field(default=None, ge=0, lt=100)
-    pos_price: Decimal | None = Field(default=None, gt=0)
+    vendor_cost: Decimal | None = Field(default=None, gt=0, decimal_places=2)
+    target_margin_pct: Decimal | None = Field(default=None, ge=0, lt=100, decimal_places=2)
+    pos_price: Decimal | None = Field(default=None, gt=0, decimal_places=2)
     pricing_mode: Literal["margin_based", "manual_price"]
     reason: str = Field(min_length=1)
     auto_update_enabled: bool | None = None
@@ -101,7 +101,6 @@ class PriceChangeResponse(BaseModel):
     target_margin_pct: Decimal | None
     status: str
     source: str
-    source: str
     reason: str
     reviewed_at: datetime | None
     processed_at: datetime
@@ -144,6 +143,10 @@ class Pagination(BaseModel):
 class ProductListResponse(BaseModel):
     items: list[ProductResponse]
     pagination: Pagination
+
+
+class CategoryListResponse(BaseModel):
+    items: list[str]
 
 
 class PriceChangeListResponse(BaseModel):
