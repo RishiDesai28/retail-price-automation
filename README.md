@@ -1,8 +1,28 @@
 # Retail Price Automation
 
+> A margin-aware pricing operations dashboard for synchronizing vendor costs, safely updating retail prices, and reviewing exceptions.
+
+[![CI](https://github.com/RishiDesai28/retail-price-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/RishiDesai28/retail-price-automation/actions/workflows/ci.yml)
+[![React](https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-149eca)](frontend/)
+[![FastAPI](https://img.shields.io/badge/backend-FastAPI-009688)](backend/)
+[![PostgreSQL](https://img.shields.io/badge/database-PostgreSQL%2016-336791)](docker-compose.yml)
+
 Retail price automation dashboard that synchronizes vendor costs, calculates margin-aware retail prices, applies safe automatic updates, and routes exceptional changes to a human review workflow.
 
-## Business Problem and Solution
+## Contents
+
+- [Why it exists](#why-it-exists)
+- [Features](#features)
+- [Technology](#technology)
+- [Architecture](#architecture)
+- [Getting started](#getting-started)
+- [Using the dashboard](#using-the-dashboard)
+- [API](#api)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+
+## Why it exists
 
 Retail teams often receive vendor cost changes faster than they can safely review and publish new shelf prices. Manual spreadsheets are slow, difficult to audit, and vulnerable to rounding errors.
 
@@ -20,7 +40,7 @@ This project provides a complete workflow: a vendor API supplies prices, the bac
 - PostgreSQL persistence with Alembic migrations and idempotent demo seed data
 - Responsive React interface with loading, empty, error, and mutation states
 
-## Tech Stack
+## Technology
 
 - Frontend: React, TypeScript, Vite, React Router, Tailwind CSS
 - Backend: Python 3.12, FastAPI, SQLAlchemy, Pydantic, Alembic
@@ -66,23 +86,65 @@ The result is quantized to cents with Decimal `ROUND_HALF_UP` rounding. For exam
 Suggested retail price = $17.14
 ```
 
+Gross margin is profit as a percentage of selling price, while markup is profit as a percentage of cost. This application uses gross margin:
+
+```text
+gross_margin_pct = ((selling_price - vendor_cost) / selling_price) * 100
+markup_pct = ((selling_price - vendor_cost) / vendor_cost) * 100
+```
+
+For a `$3.50` cost and `30%` target gross margin, the suggested POS price is `$5.00`. A manager can instead enter a manual POS price, such as `$4.49`; the backend calculates the resulting `22.05%` gross margin and stores the override in the audit log.
+
 An automatic update is allowed only when automation is enabled and the absolute vendor-cost change is at or below `AUTO_UPDATE_THRESHOLD_PERCENT` (default `10`). Other changes become `review_required`.
 
-## Local Setup
+## Getting started
 
-Prerequisites: Docker and Docker Compose.
+### Prerequisites
+
+- Docker Engine or Docker Desktop with Docker Compose v2
+- Git
+
+Node.js and Python are only required when running the frontend or backend outside Docker.
+
+### Installation
+
+Clone the repository and enter its directory:
+
+```bash
+git clone https://github.com/RishiDesai28/retail-price-automation.git
+cd retail-price-automation
+```
+
+Create a local environment file. The checked-in example contains safe local defaults; change the values when sharing or deploying an environment.
 
 ```bash
 cp .env.example .env
+```
+
+Build and start the complete application:
+
+```bash
 docker compose up --build
 ```
 
-Open `http://localhost:5173`. The API is available at `http://localhost:8000`, its OpenAPI docs at `http://localhost:8000/docs`, and the vendor API at `http://localhost:8001`.
+Open the dashboard at [http://localhost:5173](http://localhost:5173). The API is available at [http://localhost:8000](http://localhost:8000), with interactive OpenAPI documentation at [http://localhost:8000/docs](http://localhost:8000/docs). The local vendor API is available at [http://localhost:8001](http://localhost:8001).
 
-The API container runs migrations and the idempotent seed on startup. To run the seed manually:
+On startup, the API container applies Alembic migrations and loads idempotent demo data. To reseed manually:
 
 ```bash
 docker compose run --rm api python -m app.seed
+```
+
+Stop the services while preserving PostgreSQL data:
+
+```bash
+docker compose down
+```
+
+Reset all local data by removing the PostgreSQL volume:
+
+```bash
+docker compose down -v
 ```
 
 ## Docker Commands
@@ -113,11 +175,24 @@ PostgreSQL data persists in the named `postgres_data` volume. `docker compose do
 | `API_PORT` | `8000` | Compose | Host port for the retail API |
 | `VENDOR_API_PORT` | `8001` | Compose | Host port for the vendor API |
 | `FRONTEND_PORT` | `5173` | Compose | Host port for the frontend |
-| `POSTGRES_PORT` | `5432` | Compose | Host port for PostgreSQL |
 
 `.env` is ignored by Git. Commit `.env.example` only, and provide production values through hosting-provider environment settings. No production secrets are committed.
 
-## API Summary
+## Using the dashboard
+
+The dashboard is organized around three workflows:
+
+1. **Dashboard**: monitor product coverage, today’s changes, pending reviews, and the latest vendor sync.
+2. **Products**: search and filter products, adjust target margins or automation settings, and apply manual POS prices.
+3. **Audit Log**: inspect every pricing decision, then approve or reject changes that require review.
+
+Select **Run Vendor Sync** to fetch the current vendor catalog. The pricing engine calculates a suggested price from the configured gross margin. If automation is enabled and the absolute cost change is within `AUTO_UPDATE_THRESHOLD_PERCENT`, the price is updated automatically; otherwise, the change enters the review queue.
+
+The included vendor API is a deterministic local integration for development and demonstrations. It can be replaced by a reachable supplier service through `VENDOR_API_URL`.
+
+## API
+
+The API exposes interactive documentation at `/docs` when the stack is running. The main resources are summarized below.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
@@ -127,17 +202,19 @@ PostgreSQL data persists in the named `postgres_data` volume. `docker compose do
 | `GET` | `/api/products` | Search/filter/paginate products |
 | `GET` | `/api/products/{id}` | Read one product |
 | `PATCH` | `/api/products/{id}` | Update product controls |
+| `POST` | `/api/pricing/calculate` | Calculate a non-persisting pricing preview |
+| `POST` | `/api/products/{id}/pricing` | Persist margin-based or manual pricing and audit it |
 | `GET` | `/api/price-changes` | Search/filter/sort audit records |
 | `GET` | `/api/price-changes/{id}` | Read one change record |
 | `POST` | `/api/price-changes/{id}/approve` | Approve a review-required change |
 | `POST` | `/api/price-changes/{id}/reject` | Reject with `rejection_reason` |
 
-## Tests and CI
+## Testing
 
 ```bash
 cd backend
 python -m pip install -r requirements.txt
-pytest
+python -m pytest
 ```
 
 ```bash
@@ -146,7 +223,7 @@ npm ci
 npm run build
 ```
 
-GitHub Actions runs on pushes to `main` and all pull requests. It installs dependencies, runs backend pytest tests, builds the frontend, and builds the backend and vendor API Docker images using Buildx layer caching. It does not push images or deploy automatically.
+GitHub Actions runs the backend tests, frontend build, and Docker image builds on pushes to `main` and on pull requests. It does not push images or deploy automatically.
 
 ## Deployment
 
@@ -169,13 +246,16 @@ Install Docker on EC2, clone the repository, and provide a production `.env` out
 3. Filter changes to `review required`, open a detail record, and show old cost, new cost, suggested price, and reason.
 4. Approve one change and show the refreshed status and dashboard counts.
 5. Open Products, search by SKU, edit a margin or automation flag, and save.
-6. Open Audit Log, filter and sort records, then open the persisted change detail.
+6. Open Products again, choose **Set manual POS price**, review the live gross-margin warning, confirm the change, and save.
+7. Open Audit Log, filter by **Manual dashboard edit**, and open the persisted reason and source detail.
 
-## Resume Bullets
+## Contributing
 
-- Built a React and TypeScript retail pricing dashboard backed by FastAPI, PostgreSQL, and vendor-price synchronization.
-- Implemented a Decimal-based margin pricing engine with threshold-gated auto-updates and persisted approve/reject workflows.
-- Containerized a multi-service application with Docker Compose and GitHub Actions CI for tests, frontend builds, and Docker images.
+1. Fork the repository.
+2. Create a focused branch: `git checkout -b feature/your-change`.
+3. Make the change and run the backend tests and frontend build locally.
+4. Commit your changes and push the branch.
+5. Open a pull request with a concise description of the behavior and validation performed.
 
 ## Future Improvements
 

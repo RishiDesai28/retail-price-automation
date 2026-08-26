@@ -92,6 +92,7 @@ class PriceChangeLog(Base):
     change_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     target_margin_pct: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     status: Mapped[str] = mapped_column(String(30), nullable=False)
+    source: Mapped[str] = mapped_column(String(40), nullable=False, default="vendor_sync")
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

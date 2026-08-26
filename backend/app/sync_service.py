@@ -59,6 +59,7 @@ def run_vendor_price_sync(session: Session, vendor_api_url: str) -> SyncRun:
                     product_name=vendor_product["name"],
                     new_vendor_cost=vendor_cost,
                     status="unmatched",
+                    source="vendor_sync",
                     reason="No local product matches this vendor product ID.",
                 ))
                 continue
@@ -99,6 +100,7 @@ def run_vendor_price_sync(session: Session, vendor_api_url: str) -> SyncRun:
                 change_pct=decision.change_percent,
                 target_margin_pct=product.target_margin_pct,
                 status=status,
+                source="vendor_sync",
                 reason=reason,
             ))
 

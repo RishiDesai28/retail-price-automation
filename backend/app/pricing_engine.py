@@ -21,9 +21,28 @@ def _money(value: Decimal) -> Decimal:
     return value.quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
 
 
+def gross_profit_per_unit(vendor_cost: Decimal, selling_price: Decimal) -> Decimal:
+    _validate_vendor_cost(vendor_cost)
+    _validate_pos_price(selling_price)
+    return _money(selling_price - vendor_cost)
+
+
+def gross_margin_percent(vendor_cost: Decimal, selling_price: Decimal) -> Decimal:
+    _validate_vendor_cost(vendor_cost)
+    _validate_pos_price(selling_price)
+    return ((selling_price - vendor_cost) / selling_price * Decimal("100")).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+
 def _validate_vendor_cost(vendor_cost: Decimal) -> None:
     if vendor_cost <= 0:
         raise ValueError("vendor cost must be greater than zero")
+
+
+def _validate_pos_price(pos_price: Decimal) -> None:
+    if pos_price <= 0:
+        raise ValueError("POS price must be greater than zero")
 
 
 def _validate_margin(target_margin_percent: Decimal) -> None:

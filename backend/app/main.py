@@ -11,18 +11,22 @@ from app.database import engine, get_db
 from app.models import PriceChangeLog, Product, SyncRun
 from app.schemas import (
     DashboardSummary,
+    ManualPricingRequest,
+    ManualPricingResponse,
     Pagination,
     PriceChangeListResponse,
     PriceChangeResponse,
     ProductListResponse,
     ProductResponse,
     ProductUpdateRequest,
+    PricingCalculationResponse,
     RejectionRequest,
     SyncRunListResponse,
     SyncRunResponse,
 )
 from app.sync_service import run_vendor_price_sync
 from app.review_service import approve_price_change, reject_price_change
+from app.manual_pricing_service import apply_manual_pricing, calculate_pricing
 
 app = FastAPI(title="Retail Price Automation API")
 
@@ -158,9 +162,35 @@ def update_product(product_id: int, request: ProductUpdateRequest, session: Sess
     return product
 
 
+@app.post("/api/pricing/calculate", response_model=PricingCalculationResponse, tags=["pricing"])
+def calculate_pricing_endpoint(request: ManualPricingRequest) -> PricingCalculationResponse:
+    try:
+        return calculate_pricing(request)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.post("/api/products/{product_id}/pricing", response_model=ManualPricingResponse, tags=["pricing"])
+def update_product_pricing(product_id: int, request: ManualPricingRequest, session: Session = Depends(get_db)) -> ManualPricingResponse:
+    try:
+        response = apply_manual_pricing(session, product_id, request)
+        session.commit()
+        return response
+    except LookupError as error:
+        session.rollback()
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        session.rollback()
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except Exception:
+        session.rollback()
+        raise
+
+
 @app.get("/api/price-changes", response_model=PriceChangeListResponse, tags=["price changes"])
 def list_price_changes(
     status: str | None = None,
+    source: str | None = None,
     category: str | None = None,
     product_id: int | None = None,
     search: str | None = None,
@@ -181,6 +211,8 @@ def list_price_changes(
     query = select(PriceChangeLog).outerjoin(Product, PriceChangeLog.product_id == Product.id)
     if status:
         query = query.where(PriceChangeLog.status == status)
+    if source:
+        query = query.where(PriceChangeLog.source == source)
     if category:
         query = query.where(Product.category == category)
     if product_id is not None:

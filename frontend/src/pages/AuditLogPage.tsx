@@ -19,6 +19,7 @@ type PriceChangeRecord = {
   suggested_pos_price: number | string | null;
   change_pct: number | string | null;
   status: string;
+  source: string;
   reason: string;
   processed_at: string;
 };
@@ -65,6 +66,7 @@ export default function AuditLogPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [sortBy, setSortBy] = useState<(typeof sortOptions)[number]['value']>('processed_at');
@@ -98,6 +100,7 @@ export default function AuditLogPage() {
         search,
         category: categoryFilter,
         status: statusFilter,
+        source: sourceFilter,
         from_date: fromDate,
         to_date: toDate,
         page,
@@ -115,7 +118,7 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  }, [categoryFilter, fromDate, page, search, sortBy, sortOrder, statusFilter, toDate]);
+  }, [categoryFilter, fromDate, page, search, sortBy, sortOrder, sourceFilter, statusFilter, toDate]);
 
   useEffect(() => {
     void fetchCategoryOptions();
@@ -125,7 +128,7 @@ export default function AuditLogPage() {
     void fetchRecords();
   }, [fetchRecords]);
 
-  const hasFilters = Boolean(search || categoryFilter || statusFilter || fromDate || toDate);
+  const hasFilters = Boolean(search || categoryFilter || statusFilter || sourceFilter || fromDate || toDate);
 
   return (
     <div className="space-y-6">
@@ -158,6 +161,13 @@ export default function AuditLogPage() {
             {categoryOptions.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
+          </select>
+
+          <select aria-label="Filter audit by source" value={sourceFilter} onChange={(event) => { setSourceFilter(event.target.value); setPage(1); }} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500">
+            <option value="">All sources</option>
+            <option value="vendor_sync">Vendor sync</option>
+            <option value="manual_dashboard_edit">Manual dashboard edit</option>
+            <option value="manual_approval">Manual approval</option>
           </select>
 
           <select
@@ -223,6 +233,7 @@ export default function AuditLogPage() {
                 setSearch('');
                 setCategoryFilter('');
                 setStatusFilter('');
+                setSourceFilter('');
                 setFromDate('');
                 setToDate('');
                 setPage(1);
@@ -245,8 +256,8 @@ export default function AuditLogPage() {
           <EmptyState title="No audit records found" description="Adjust filters or run vendor sync to populate this view." />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-[1200px] w-full border-separate border-spacing-0 text-left text-sm text-slate-700">
+            <div className="w-full overflow-hidden">
+              <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm text-slate-700">
                 <caption className="sr-only">Price-change audit history</caption>
                 <thead>
                   <tr className="bg-slate-50 text-slate-600">
@@ -257,6 +268,7 @@ export default function AuditLogPage() {
                     <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Change %</th>
                     <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Suggested POS</th>
                     <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Status</th>
+                    <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Source</th>
                     <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Reason</th>
                     <th scope="col" className="border-b border-slate-200 px-3 py-3 font-medium">Processed date</th>
                     <th scope="col" className="border-b border-slate-200 px-3 py-3 text-right font-medium">Details</th>
@@ -272,6 +284,7 @@ export default function AuditLogPage() {
                       <td className="border-b border-slate-200 px-3 py-3 text-right">{formatPercent(record.change_pct)}</td>
                       <td className="border-b border-slate-200 px-3 py-3 text-right">{formatCurrency(record.suggested_pos_price)}</td>
                       <td className="border-b border-slate-200 px-3 py-3"><StatusBadge status={record.status} /></td>
+                      <td className="border-b border-slate-200 px-3 py-3">{record.source === 'manual_dashboard_edit' ? 'Manual dashboard edit' : record.source === 'manual_approval' ? 'Manual approval' : 'Vendor sync'}</td>
                       <td className="border-b border-slate-200 px-3 py-3 text-slate-600">{record.reason}</td>
                       <td className="border-b border-slate-200 px-3 py-3">{formatDate(record.processed_at)}</td>
                       <td className="border-b border-slate-200 px-3 py-3 text-right">

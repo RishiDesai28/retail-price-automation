@@ -361,8 +361,8 @@ export default function DashboardPage() {
           <div className="mt-5"><EmptyState title="No price changes found" description="Adjust filters or run a vendor sync to populate the dashboard." /></div>
         ) : (
           <>
-            <div className="mt-5 overflow-x-auto">
-              <table className="min-w-[1200px] w-full border-separate border-spacing-0 text-left text-sm text-slate-700">
+            <div className="mt-5 w-full overflow-hidden">
+              <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm text-slate-700">
                 <caption className="sr-only">Recent price changes and review actions</caption>
                 <thead>
                   <tr className="bg-slate-50 text-slate-600">

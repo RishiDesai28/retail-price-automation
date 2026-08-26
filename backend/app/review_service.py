@@ -20,6 +20,7 @@ def approve_price_change(session: Session, log_id: int) -> PriceChangeLog:
     product.current_vendor_cost = log.new_vendor_cost
     product.current_pos_price = log.suggested_pos_price
     log.status = "updated"
+    log.source = "manual_approval"
     log.new_pos_price = log.suggested_pos_price
     log.reviewed_at = datetime.now(timezone.utc)
     log.reason = f"{log.reason} Manually approved."

@@ -13,9 +13,10 @@ from app.main import (
     list_price_changes,
     list_products,
     reject_price_change_endpoint,
+    update_product_pricing,
 )
 from app.models import PriceChangeLog, Product, SyncRun
-from app.schemas import RejectionRequest
+from app.schemas import ManualPricingRequest, RejectionRequest
 from app.sync_service import run_vendor_price_sync
 
 
@@ -301,3 +302,68 @@ def test_rejection_of_non_review_record_is_rejected(session: Session) -> None:
 def test_rejection_requires_non_empty_reason() -> None:
     with pytest.raises(ValueError):
         RejectionRequest(rejection_reason="   ")
+
+
+def test_margin_based_pricing_update_persists_and_audits(session: Session) -> None:
+    product = add_product(session, "VND-001", current_vendor_cost=Decimal("3.00"), current_pos_price=Decimal("4.29"))
+    request = ManualPricingRequest(
+        vendor_cost=Decimal("3.50"), target_margin_pct=Decimal("30"), pricing_mode="margin_based", reason="Updated supplier cost."
+    )
+
+    response = update_product_pricing(product.id, request, session)
+
+    session.refresh(product)
+    log = session.query(PriceChangeLog).filter_by(id=response.audit_log_id).one()
+    assert product.current_vendor_cost == Decimal("3.50")
+    assert product.current_pos_price == Decimal("5.00")
+    assert product.target_margin_pct == Decimal("30.00")
+    assert response.gross_profit_per_unit == Decimal("1.50")
+    assert response.gross_margin_pct == Decimal("30.00")
+    assert log.status == "manually_updated"
+    assert log.source == "manual_dashboard_edit"
+    assert log.reason == "Updated supplier cost."
+
+
+def test_manual_price_update_persists_and_audits(session: Session) -> None:
+    product = add_product(session, "VND-001")
+    request = ManualPricingRequest(
+        vendor_cost=Decimal("3.50"), pos_price=Decimal("4.49"), pricing_mode="manual_price", reason="Competitive promotion."
+    )
+
+    response = update_product_pricing(product.id, request, session)
+
+    session.refresh(product)
+    log = session.query(PriceChangeLog).filter_by(id=response.audit_log_id).one()
+    assert product.current_vendor_cost == Decimal("3.50")
+    assert product.current_pos_price == Decimal("4.49")
+    assert product.target_margin_pct == Decimal("30.00")
+    assert response.gross_margin_pct == Decimal("22.05")
+    assert log.status == "manually_updated"
+
+
+def test_manual_pricing_rolls_back_product_when_audit_write_fails(session: Session, monkeypatch) -> None:
+    product = add_product(session, "VND-001")
+    original_cost = product.current_vendor_cost
+    original_price = product.current_pos_price
+    request = ManualPricingRequest(
+        vendor_cost=Decimal("3.50"), pos_price=Decimal("4.49"), pricing_mode="manual_price", reason="Temporary promotion."
+    )
+
+    original_flush = session.flush
+    calls = 0
+
+    def fail_after_sync_run() -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("audit write failed")
+        original_flush()
+
+    monkeypatch.setattr(session, "flush", fail_after_sync_run)
+    with pytest.raises(RuntimeError):
+        update_product_pricing(product.id, request, session)
+    session.rollback()
+    session.refresh(product)
+    assert product.current_vendor_cost == original_cost
+    assert product.current_pos_price == original_price
+    assert session.query(PriceChangeLog).count() == 0

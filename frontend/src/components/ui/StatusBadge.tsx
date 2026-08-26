@@ -9,10 +9,11 @@ const statusStyles: Record<string, string> = {
   no_change: 'border-slate-200 bg-slate-100 text-slate-700',
   failed: 'border-red-200 bg-red-100 text-red-800',
   unmatched: 'border-violet-200 bg-violet-100 text-violet-800',
+  manually_updated: 'border-sky-200 bg-sky-100 text-sky-800',
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const normalizedStatus = status.replace(/_/g, ' ');
+  const normalizedStatus = status === 'manually_updated' ? 'manual update' : status.replace(/_/g, ' ');
   const styles = statusStyles[status] ?? 'border-slate-200 bg-slate-100 text-slate-700';
 
   return (

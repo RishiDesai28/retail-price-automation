@@ -18,14 +18,14 @@ function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col lg:flex-row">
-        <aside className="border-b border-slate-200 bg-white/90 backdrop-blur lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r">
-          <div className="border-b border-slate-200 px-5 py-6 lg:px-6">
+      <div className="flex min-h-screen w-full flex-col lg:flex-row">
+        <aside className="shrink-0 border-b border-slate-200 bg-white/90 backdrop-blur lg:min-h-screen lg:w-64 lg:border-b-0 lg:border-r">
+          <div className="border-b border-slate-200 px-4 py-6 lg:px-5">
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Operations</p>
             <h1 className="mt-3 text-xl font-semibold text-slate-900">Retail Price Automation Dashboard</h1>
           </div>
 
-          <nav className="flex gap-2 overflow-x-auto px-4 py-4 lg:flex-col lg:px-3 lg:py-6">
+          <nav className="flex gap-2 overflow-x-auto px-3 py-4 lg:flex-col lg:px-2 lg:py-6">
             {navItems.map(({ to, label }) => (
               <NavLink
                 key={to}
@@ -44,7 +44,7 @@ function AppLayout({ children }: AppLayoutProps) {
           </nav>
         </aside>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

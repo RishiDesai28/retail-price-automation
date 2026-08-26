@@ -33,6 +33,7 @@ type PriceChangeDetail = {
   change_pct: number | string | null;
   target_margin_pct: number | string | null;
   status: string;
+  source: string;
   reason: string;
   reviewed_at: string | null;
   processed_at: string;
@@ -119,6 +120,7 @@ export function PriceChangeDetailDrawer({ logId, isOpen, onClose, onMutated }: P
       { label: 'Suggested POS price', value: formatCurrency(detail?.suggested_pos_price) },
       { label: 'Current/new POS price', value: formatCurrency(detail?.new_pos_price ?? product?.current_pos_price) },
       { label: 'Status', value: detail ? <StatusBadge status={detail.status} /> : '—' },
+      { label: 'Source', value: detail?.source === 'manual_dashboard_edit' ? 'Manual dashboard edit' : detail?.source === 'manual_approval' ? 'Manual approval' : 'Vendor sync' },
       { label: 'Decision reason', value: detail?.reason ?? '—' },
       { label: 'Processed date', value: detail ? formatDate(detail.processed_at) : '—' },
       { label: 'Reviewed date', value: detail?.reviewed_at ? formatDate(detail.reviewed_at) : '—' },

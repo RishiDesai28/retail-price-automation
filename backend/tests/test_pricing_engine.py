@@ -1,8 +1,14 @@
+import decimal
 from decimal import Decimal
 
 import pytest
 
-from app.pricing_engine import evaluate_price_change, suggested_retail_price
+from app.pricing_engine import (
+    evaluate_price_change,
+    gross_margin_percent,
+    gross_profit_per_unit,
+    suggested_retail_price,
+)
 
 
 def test_suggested_price_uses_margin_formula() -> None:
@@ -52,3 +58,25 @@ def test_zero_old_vendor_cost_requires_review_without_division_error() -> None:
     decision = evaluate_price_change(Decimal("0"), Decimal("10.00"), Decimal("30"), True)
     assert decision.outcome == "review_required"
     assert decision.change_percent is None
+
+
+def test_gross_margin_calculation() -> None:
+    assert suggested_retail_price(Decimal("3.50"), Decimal("30")) == Decimal("5.00")
+    assert gross_profit_per_unit(Decimal("3.50"), Decimal("5.00")) == Decimal("1.50")
+    assert gross_margin_percent(Decimal("3.50"), Decimal("5.00")) == Decimal("30.00")
+
+
+def test_manual_price_gross_margin_calculation() -> None:
+    assert gross_margin_percent(Decimal("3.50"), Decimal("4.49")) == Decimal("22.05")
+
+
+@pytest.mark.parametrize("vendor_cost", [Decimal("0"), Decimal("-1"), Decimal("NaN")])
+def test_invalid_vendor_cost_for_margin(vendor_cost: Decimal) -> None:
+    with pytest.raises((ValueError, decimal.InvalidOperation)):
+        suggested_retail_price(vendor_cost, Decimal("30"))
+
+
+@pytest.mark.parametrize("pos_price", [Decimal("0"), Decimal("-1")])
+def test_invalid_pos_price(pos_price: Decimal) -> None:
+    with pytest.raises(ValueError, match="POS price"):
+        gross_margin_percent(Decimal("3.50"), pos_price)
